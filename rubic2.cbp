@@ -20,6 +20,8 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="7.txt" />
+		<Unit filename="8.txt" />
 		<Unit filename="main1.cpp">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
