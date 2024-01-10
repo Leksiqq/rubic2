@@ -2,6 +2,7 @@
 #include <vector>
 #include <map>
 #include <queue>
+#include <stack>
 #include <set>
 #include <ctime>
 
@@ -10,14 +11,14 @@ typedef long long ll;
 typedef pair<ll,ll> state;
 typedef pair<int,int> one_move;
 
-#define FRONT 0
-#define BACK 1
-#define RIGHT 2
-#define LEFT 3
-#define TOP 4
-#define BOTTOM 5
-#define CLOCKWISE 1
-#define COUNTERCLOCKWISE -1
+#define FRONT 1
+#define BACK 2
+#define RIGHT 3
+#define LEFT 4
+#define TOP 5
+#define BOTTOM 6
+#define CLOCKWISE (-1)
+#define COUNTERCLOCKWISE 1
 
 map<char,int> color_name_to_code = {{'w',0},{'b',1},{'y',2},{'g',3},{'o',4},{'r',5}};
 string colours = "wbygor";
@@ -74,7 +75,7 @@ string one_move_to_string(one_move &m){
     + (string)"-" + (m.second == CLOCKWISE ? (string)"cw" : (string)"ccw");
 }
 
-int main()
+int main(int argc, char**argv)
 {
     state start;
     string line;
@@ -154,12 +155,11 @@ int main()
     print_state(start);
     cout << endl;
 
-    map<state,pair<state,one_move>> prev;
-    map<state,int> dists;
-    vector<queue<state>> qu(1);
-
     int ans = -1;
     state ans_finish;
+
+    map<state,int> dists0;
+    vector<queue<state>> qu0(1);
 
     for(int i = 0; i < finish_short.size(); ++i){
         state s;
@@ -175,14 +175,45 @@ int main()
             ans_finish = start;
             break;
         }
-        qu[0].push(s);
-        dists[s] = 0;
+        qu0[0].push(s);
+        dists0[s] = 0;
     }
 
     time_t started = time(nullptr);
 
     if(ans == -1){
-        for(int i = 0; ans == -1 && i < qu.size(); ++i){
+        map<state,pair<state,one_move>> prev0;
+        map<state,pair<state,one_move>> prev;
+        map<state,int> dists;
+        vector<queue<state>> qu(1);
+
+        qu[0].push(start);
+        dists[start] = 0;
+
+        for(int i = 0; ans == -1 && i < max(qu.size(), qu0.size()); ++i){
+            while(ans == -1 && !qu0[i].empty()){
+                state cur0 = qu0[i].front();
+                qu0[i].pop();
+                if(dists0[cur0] == i){
+                    for(auto tr: transformer){
+                        state nb;
+                        transform_state(cur0, nb, tr.second);
+                        if(dists0.find(nb) == dists0.end()){
+                            dists0[nb] = i + 1;
+                            if(qu0.size() - 1 < i + 1){
+                                qu0.resize(i + 2);
+                            }
+                            qu0[i + 1].push(nb);
+                            prev0[nb] = {cur0, tr.first};
+                        }
+                        if(dists.find(nb) != dists.end()){
+                            ans = dists[nb] + i + 1;
+                            ans_finish = nb;
+                            break;
+                        }
+                    }
+                }
+            }
             while(ans == -1 && !qu[i].empty()){
                 state cur = qu[i].front();
                 qu[i].pop();
@@ -197,34 +228,51 @@ int main()
                             }
                             qu[i + 1].push(nb);
                             prev[nb] = {cur, tr.first};
-                            if(start.first == nb.first && start.second == nb.second){
-                                ans = i + 1;
-                                ans_finish = nb;
-                                break;
-                            }
+                        }
+                        if(dists0.find(nb) != dists0.end()){
+                            ans = dists0[nb] + i + 1;
+                            ans_finish = nb;
+                            break;
                         }
                     }
                 }
             }
         }
-    }
-
-    if(ans == -1){
-        cout << "Input state is unreachable!" << endl;
-        return 1;
-    }
-
-    state cur = ans_finish;
-    while(true){
-        auto it = prev.find(cur);
-        if(it == prev.end()){
-            print_state(cur);
-            cout << endl;
-            break;
+        if(ans == -1){
+            cout << "Input state is unreachable!" << endl;
+            return 1;
         }
-        it->second.second.second *= -1;
-        cout << one_move_to_string(it->second.second) << endl;
-        cur = it->second.first;
+
+        cout << ans << " moves" << endl;
+
+        stack<one_move> solve;
+        state cur = ans_finish;
+        while(true){
+            auto it = prev.find(cur);
+            if(it == prev.end()){
+                break;
+            }
+            solve.push(it->second.second);
+            cur = it->second.first;
+        }
+
+        while(!solve.empty()){
+            cout << one_move_to_string(solve.top()) << endl;
+            solve.pop();
+        }
+
+        cur = ans_finish;
+        while(true){
+            auto it = prev0.find(cur);
+            if(it == prev0.end()){
+                print_state(cur);
+                cout << endl;
+                break;
+            }
+            it->second.second.second *= -1;
+            cout << one_move_to_string(it->second.second) << endl;
+            cur = it->second.first;
+        }
     }
 
     time_t finished = time(nullptr);
